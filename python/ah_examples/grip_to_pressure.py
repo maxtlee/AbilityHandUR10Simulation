@@ -12,14 +12,14 @@ NUM_FINGERS = 5  # fingers 0-4; thumb rotator (index 5) held at fixed position
 OPEN_POS = [10, 10, 10, 10, 10, -50]  # thumb rotator at -50 for grip posture
 MAX_POS = [95, 95, 95, 95, 95]
 CLOSE_RATE = 40  # degrees per second
-DEFAULT_THRESHOLD = 1.0  # FSR sum threshold in Newtons
+DEFAULT_THRESHOLD = 0.3  # current draw threshold in amps
 
 RUNNING = True
 
 
 class GripController:
-    """Incrementally closes each finger via position control until its FSR
-    sensors detect pressure above the threshold, then holds that position."""
+    """Incrementally closes each finger via position control until its current
+    draw exceeds the threshold, then holds that position."""
 
     def __init__(self, client, threshold=DEFAULT_THRESHOLD):
         self.client = client
@@ -29,12 +29,12 @@ class GripController:
         self.gripping = False
         self.finger_held = [False] * NUM_FINGERS
 
-    def get_finger_fsr_sum(self, finger_idx):
-        """Sum of the 6 FSR sensors for one finger."""
-        fsr = self.client.hand.get_fsr()
-        if fsr is None:
+    def get_finger_current(self, finger_idx):
+        """Absolute current draw in amps for one finger."""
+        current = self.client.hand.get_current()
+        if current is None:
             return 0.0
-        return sum(fsr[finger_idx * 6 : finger_idx * 6 + 6])
+        return abs(current[finger_idx])
 
     def start_grip(self):
         self.gripping = True
@@ -52,7 +52,7 @@ class GripController:
             self.start_grip()
 
     def adjust_threshold(self, delta):
-        self.threshold = max(0.1, round(self.threshold + delta, 1))
+        self.threshold = max(0.05, round(self.threshold + delta, 2))
 
     def toggle_finger(self, idx):
         if 0 <= idx < NUM_FINGERS:
@@ -64,7 +64,7 @@ class GripController:
             for i in range(NUM_FINGERS):
                 if not self.finger_enabled[i] or self.finger_held[i]:
                     continue
-                if self.get_finger_fsr_sum(i) >= self.threshold:
+                if self.get_finger_current(i) >= self.threshold:
                     self.finger_held[i] = True
                 else:
                     self.positions[i] = min(
@@ -92,7 +92,7 @@ def main():
     ctrl_thread = threading.Thread(target=control_thread, args=(controller,))
     ctrl_thread.start()
 
-    # Let FSR offset calibration run
+    # Let initial readings settle
     time.sleep(0.5)
 
     # --- Plot setup ---
@@ -118,8 +118,8 @@ def main():
             y=controller.threshold, color="red", linestyle="--", linewidth=1, alpha=0.6
         )
         thresh_lines.append(tl)
-        ax.set_ylim(0, 8)
-        ax.set_ylabel("N", fontsize=9)
+        ax.set_ylim(0, 1)
+        ax.set_ylabel("A", fontsize=9)
         ax.grid(True, alpha=0.3)
         ax.set_title(FINGER_NAMES[i], fontsize=10, loc="left", fontweight="bold")
         txt = ax.text(
@@ -151,9 +151,9 @@ def main():
         elif event.key == "o":
             controller.open_hand()
         elif event.key == "up":
-            controller.adjust_threshold(0.2)
+            controller.adjust_threshold(0.05)
         elif event.key == "down":
-            controller.adjust_threshold(-0.2)
+            controller.adjust_threshold(-0.05)
         elif event.key in ("1", "2", "3", "4", "5"):
             controller.toggle_finger(int(event.key) - 1)
         elif event.key == "q":
@@ -167,10 +167,10 @@ def main():
         current_time = time.time() - start_time
         x_data.append(current_time)
 
-        fsr = client.hand.get_fsr()
+        current = client.hand.get_current()
         for i in range(NUM_FINGERS):
-            if fsr:
-                y_data[i].append(sum(fsr[i * 6 : i * 6 + 6]))
+            if current:
+                y_data[i].append(abs(current[i]))
             else:
                 y_data[i].append(0.0)
 
@@ -193,13 +193,13 @@ def main():
         if controller.gripping:
             held = sum(controller.finger_held)
             state_text.set_text(
-                f"GRIPPING ({held}/{NUM_FINGERS} held)  Threshold: {controller.threshold:.1f} N"
+                f"GRIPPING ({held}/{NUM_FINGERS} held)  Threshold: {controller.threshold:.2f} A"
             )
             state_text.set_bbox(
                 dict(boxstyle="round", facecolor="lightsalmon", alpha=0.9)
             )
         else:
-            state_text.set_text(f"OPEN  Threshold: {controller.threshold:.1f} N")
+            state_text.set_text(f"OPEN  Threshold: {controller.threshold:.2f} A")
             state_text.set_bbox(
                 dict(boxstyle="round", facecolor="lightgreen", alpha=0.9)
             )
