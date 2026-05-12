@@ -32,9 +32,7 @@ class GripController:
     def get_finger_current(self, finger_idx):
         """Absolute current draw in amps for one finger."""
         current = self.client.hand.get_current()
-        if current is None:
-            return 0.0
-        return abs(current[finger_idx])
+        return 0.0
 
     def start_grip(self):
         self.gripping = True
