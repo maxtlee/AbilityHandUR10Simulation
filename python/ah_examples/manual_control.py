@@ -2,9 +2,16 @@ import time
 import threading
 from collections import deque
 
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 from matplotlib import gridspec
+
+# Suppress all default matplotlib key bindings (s=save, q=quit, etc.)
+# so they don't conflict with our joint controls.
+for key in list(mpl.rcParams):
+    if key.startswith("keymap."):
+        mpl.rcParams[key] = []
 
 from ah_wrapper import AHSerialClient
 
@@ -107,7 +114,6 @@ def main():
     # Left column: 3 motor plots (position, velocity, current)
     motor_axes = [fig.add_subplot(gs_main[i, 0]) for i in range(3)]
     for ax in motor_axes[:-1]:
-        ax.sharex(motor_axes[-1])
         ax.tick_params(labelbottom=False)
 
     # Right column: 5 touch sensor plots nested inside the full right column
@@ -116,7 +122,6 @@ def main():
     )
     touch_axes = [fig.add_subplot(gs_touch[i]) for i in range(5)]
     for ax in touch_axes[:-1]:
-        ax.sharex(touch_axes[-1])
         ax.tick_params(labelbottom=False)
 
     # --- Motor plot setup ---
@@ -168,8 +173,10 @@ def main():
         ha="center", fontsize=8, family="monospace",
         bbox=dict(boxstyle="round", facecolor="lightyellow", alpha=0.9),
     )
-    pos_text = fig.text(
-        0.35, 0.98, "", fontsize=8, va="top", ha="center", family="monospace",
+    # Axes-level text so it can be returned as a blit artist
+    pos_text = motor_axes[0].text(
+        0.5, 1.15, "", transform=motor_axes[0].transAxes,
+        fontsize=8, ha="center", family="monospace",
         bbox=dict(boxstyle="round", facecolor="lightcyan", alpha=0.9),
     )
 
@@ -191,6 +198,13 @@ def main():
 
     fig.canvas.mpl_connect("key_press_event", on_key_press)
     fig.canvas.mpl_connect("key_release_event", on_key_release)
+
+    # Collect all animated artists for blit
+    all_artists = []
+    for jlines in motor_lines:
+        all_artists.extend(jlines)
+    all_artists.extend(touch_lines)
+    all_artists.append(pos_text)
 
     # --- Animation ---
     def update_plot(frame):
@@ -232,8 +246,10 @@ def main():
             f"ThF={t[4]:5.1f}\u00b0  ThR={t[5]:6.1f}\u00b0"
         )
 
+        return all_artists
+
     ani = FuncAnimation(
-        fig, update_plot, interval=20, blit=False, cache_frame_data=False,
+        fig, update_plot, interval=10, blit=True, cache_frame_data=False,
     )
 
     try:
