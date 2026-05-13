@@ -13,7 +13,7 @@ def main():
         hand=client.hand,
         left_hand=l_client.hand,
         scene=os.path.join(
-            "ah_simulators", "mujoco_xml", "unitree_g1", "scene.xml"
+            "ah_simulators", "mujoco_xml", "universal_robots_ur10e", "ur10e.xml"
         ),
     )
     try:
