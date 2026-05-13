@@ -5,6 +5,7 @@ from typing import Any, Dict, Optional, Tuple
 
 import gymnasium as gym
 import mujoco
+import mujoco.viewer
 import numpy as np
 from gymnasium import spaces
 
