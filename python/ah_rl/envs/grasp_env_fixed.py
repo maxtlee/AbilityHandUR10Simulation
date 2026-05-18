@@ -161,11 +161,13 @@ class AHGraspEnvFixed(gym.Env):
             ]
         )
 
-        # Table top height (table body z=0, geom pos z=0.4, half-size 0.02)
-        self._table_z = 0.42
-        # Object half-size = 0.025, so resting object center z = table_z + 0.025
-        self._obj_rest_z = self._table_z + 0.025
-        self._default_obj_pos = np.array([-0.155, 0.585, self._obj_rest_z])
+        # Object spawns FLOATING at z=0.500 (the finger-thumb closure point).
+        # Gravity makes it fall unless gripped. "Lift" reward = held near spawn;
+        # success = sustained holding within `lift_threshold` of spawn z.
+        self._obj_spawn_z = 0.530
+        self._obj_rest_z = self._obj_spawn_z   # legacy alias (unused, kept for compat)
+        self._fallen_z = 0.30  # object hit floor_table -> terminate
+        self._default_obj_pos = np.array([-0.155, 0.620, self._obj_spawn_z])
 
         # qvel addresses for the 6 controlled hand DOFs (1 dof per hinge joint)
         self._hand_qvel_ids = [
@@ -365,10 +367,18 @@ class AHGraspEnvFixed(gym.Env):
         r_contact = r_approach * r_contact_raw  # gated by approach
 
         obj_z = float(obj_pos[2])
-        lift_height = max(0.0, obj_z - self._obj_rest_z)
-        r_lift = float(np.clip(lift_height / self.lift_threshold, 0.0, 1.0))
+        # "Lift" = the object is being held near its spawn z (i.e. the agent
+        # is supporting it against gravity). r_lift is a tent function around
+        # the spawn z: peaks at 1.0 when obj_z == spawn_z, falls off as it
+        # drops below.
+        drop = max(0.0, self._obj_spawn_z - obj_z)
+        r_lift = float(np.clip(1.0 - drop / 0.05, 0.0, 1.0))  # zero once it's fallen 5 cm
+        # For info compatibility, also expose the standard "lift_height"
+        # (positive only if the agent has raised the object above spawn).
+        lift_height = max(0.0, obj_z - self._obj_spawn_z)
 
-        if lift_height > self.lift_threshold:
+        # Sustained-hold success: object stays within lift_threshold of spawn z
+        if abs(obj_z - self._obj_spawn_z) < self.lift_threshold:
             self._hold_counter += 1
         else:
             self._hold_counter = 0
@@ -411,8 +421,8 @@ class AHGraspEnvFixed(gym.Env):
         obj_pos = self.data.qpos[
             self._obj_qpos_adr : self._obj_qpos_adr + 3
         ]
-        # Object fell off the table.
-        if obj_pos[2] < (self._table_z - 0.10):
+        # Object fell off the shelf to the floor.
+        if obj_pos[2] < self._fallen_z:
             return True
         # Object knocked far from the workspace center.
         if np.linalg.norm(obj_pos[:2] - self._default_obj_pos[:2]) > 0.4:

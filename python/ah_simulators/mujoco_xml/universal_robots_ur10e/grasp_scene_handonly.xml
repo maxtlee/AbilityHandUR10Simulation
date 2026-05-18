@@ -25,21 +25,20 @@
     <light pos="0 0 1.5" dir="0 0 -1" directional="true"/>
     <geom name="floor" size="0 0 0.05" type="plane" material="groundplane"/>
 
-    <!-- Table: top at z=0.42, centered under grasp zone -->
-    <body name="table" pos="-0.155 0.585 0">
-      <geom name="table_top" type="box" size="0.20 0.20 0.02" pos="0 0 0.4"
+    <!-- Floor table for visual reference / catches fallen objects -->
+    <body name="floor_table" pos="-0.155 0.55 0">
+      <geom name="table_top" type="box" size="0.15 0.10 0.02" pos="0 0 0.20"
             material="table_mat" mass="20" friction="1.0 0.005 0.0001"/>
-      <geom name="table_leg1" type="cylinder" size="0.02 0.19" pos=" 0.17  0.17 0.19" rgba="0.4 0.3 0.2 1"/>
-      <geom name="table_leg2" type="cylinder" size="0.02 0.19" pos="-0.17  0.17 0.19" rgba="0.4 0.3 0.2 1"/>
-      <geom name="table_leg3" type="cylinder" size="0.02 0.19" pos=" 0.17 -0.17 0.19" rgba="0.4 0.3 0.2 1"/>
-      <geom name="table_leg4" type="cylinder" size="0.02 0.19" pos="-0.17 -0.17 0.19" rgba="0.4 0.3 0.2 1"/>
     </body>
 
-    <!-- Graspable object: 5cm cube, sits on table top centered in grasp zone -->
-    <body name="target_object" pos="-0.155 0.585 0.445">
+    <!-- Graspable object: 5cm cube spawned floating at the finger-thumb closure
+         meeting point. Gravity pulls it down: if the agent doesn't close around
+         it quickly, it falls onto the floor_table 28cm below and the episode
+         terminates. A successful grip holds the object near its spawn z. -->
+    <body name="target_object" pos="-0.155 0.620 0.530">
       <freejoint name="object_joint"/>
       <geom name="object_geom" type="box" size="0.025 0.025 0.025"
-            material="object_mat" mass="0.1" friction="1.0 0.005 0.0001"
+            material="object_mat" mass="0.05" friction="1.5 0.005 0.0001"
             solref="0.01 1" solimp="0.95 0.99 0.002"/>
       <site name="object_site" size="0.001"/>
     </body>
@@ -64,7 +63,7 @@
     <key name="grasp_ready"
          qpos="-1.6 -1.6 1.7 -1.5 -1.5708 0
                  0 0.7235 0 0.7235 0 0.7235 0 0.7235 0 0
-                 -0.155 0.585 0.445 1 0 0 0"
+                 -0.155 0.620 0.530 1 0 0 0"
          ctrl="-1.6 -1.6 1.7 -1.5 -1.5708 0
                  0 0.7235 0 0.7235 0 0.7235 0 0.7235 0 0"/>
   </keyframe>
