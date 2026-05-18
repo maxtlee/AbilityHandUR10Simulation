@@ -25,20 +25,19 @@
     <light pos="0 0 1.5" dir="0 0 -1" directional="true"/>
     <geom name="floor" size="0 0 0.05" type="plane" material="groundplane"/>
 
-    <!-- Floor table for visual reference / catches fallen objects -->
+    <!-- Floor catches dropped objects so the workspace stays clean. -->
     <body name="floor_table" pos="-0.155 0.55 0">
       <geom name="table_top" type="box" size="0.15 0.10 0.02" pos="0 0 0.20"
             material="table_mat" mass="20" friction="1.0 0.005 0.0001"/>
     </body>
 
-    <!-- Graspable object: 5cm cube spawned floating at the finger-thumb closure
-         meeting point. Gravity pulls it down: if the agent doesn't close around
-         it quickly, it falls onto the floor_table 28cm below and the episode
-         terminates. A successful grip holds the object near its spawn z. -->
-    <body name="target_object" pos="-0.155 0.620 0.530">
+    <!-- Graspable object for the HOLD task: 3cm cube placed in the natural
+         finger-thumb cup at half-closure (action=0 maps to MCPs at midpoint
+         0.87 rad). -->
+    <body name="target_object" pos="-0.176 0.586 0.507">
       <freejoint name="object_joint"/>
-      <geom name="object_geom" type="box" size="0.025 0.025 0.025"
-            material="object_mat" mass="0.05" friction="1.5 0.005 0.0001"
+      <geom name="object_geom" type="box" size="0.015 0.015 0.015"
+            material="object_mat" mass="0.03" friction="2.0 0.01 0.0001"
             solref="0.01 1" solimp="0.95 0.99 0.002"/>
       <site name="object_site" size="0.001"/>
     </body>
@@ -60,11 +59,20 @@
          Hand: fully open (all hand joints at 0).
          Object: on table top at world (-0.155, 0.58, 0.445).
          qpos order: 6 arm + 10 hand + 7 object freejoint. -->
+    <!-- HOLD task: hand qpos at the closure where fingertips are just touching
+         the pre-placed object (MCPs ~0.9, thumb closed). ctrl commands TIGHTER
+         closure (MCPs 1.4, thumb fully closed/opposed) so the position
+         controller generates a clamping force on the object via position error
+         (force = kp * (ctrl - qpos)). -->
+    <!-- HOLD task initial state: hand qpos and ctrl both at the midpoints of
+         each actuator's range, which is exactly what action=0 maps to in the
+         env. This way the agent doesn't move the hand on its first action
+         when starting from neutral. -->
     <key name="grasp_ready"
          qpos="-1.6 -1.6 1.7 -1.5 -1.5708 0
-                 0 0.7235 0 0.7235 0 0.7235 0 0.7235 0 0
-                 -0.155 0.620 0.530 1 0 0 0"
+                 0.87 1.644 0.87 1.644 0.87 1.644 0.87 1.644 -1.045 0.955
+                 -0.176 0.586 0.507 1 0 0 0"
          ctrl="-1.6 -1.6 1.7 -1.5 -1.5708 0
-                 0 0.7235 0 0.7235 0 0.7235 0 0.7235 0 0"/>
+                 0.87 1.644 0.87 1.644 0.87 1.644 0.87 1.644 -1.045 0.955"/>
   </keyframe>
 </mujoco>

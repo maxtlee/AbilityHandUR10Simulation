@@ -164,10 +164,12 @@ class AHGraspEnvFixed(gym.Env):
         # Object spawns FLOATING at z=0.500 (the finger-thumb closure point).
         # Gravity makes it fall unless gripped. "Lift" reward = held near spawn;
         # success = sustained holding within `lift_threshold` of spawn z.
-        self._obj_spawn_z = 0.530
-        self._obj_rest_z = self._obj_spawn_z   # legacy alias (unused, kept for compat)
-        self._fallen_z = 0.30  # object hit floor_table -> terminate
-        self._default_obj_pos = np.array([-0.155, 0.620, self._obj_spawn_z])
+        # HOLD task: object is pre-placed in the half-closed grip cup at this
+        # position. Reward signals "supported" while obj_z stays near spawn.
+        self._obj_spawn_z = 0.507
+        self._obj_rest_z = self._obj_spawn_z   # legacy alias
+        self._fallen_z = 0.30  # object hit floor -> terminate
+        self._default_obj_pos = np.array([-0.176, 0.586, self._obj_spawn_z])
 
         # qvel addresses for the 6 controlled hand DOFs (1 dof per hinge joint)
         self._hand_qvel_ids = [

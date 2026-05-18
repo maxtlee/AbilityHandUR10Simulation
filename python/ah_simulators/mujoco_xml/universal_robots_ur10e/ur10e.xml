@@ -112,7 +112,7 @@
       <!--Joints-->
       <default class="joints">
         <joint type="hinge" pos="0 0 0" axis="0 0 1" damping="0.01" frictionloss="0.1"/>
-        <position kp="1" kv="0" ctrllimited="true"/>
+        <position kp="30" kv="0.7" ctrllimited="true"/>
 
         <default class="finger_mcp_joint">
           <joint range="0 1.74"/>
