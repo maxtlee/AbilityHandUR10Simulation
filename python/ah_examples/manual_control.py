@@ -19,8 +19,8 @@ JOINT_NAMES = ["Index", "Middle", "Ring", "Pinky", "Thb Flex", "Thb Rot"]
 FINGER_NAMES = ["Index", "Middle", "Ring", "Pinky", "Thumb"]
 NUM_JOINTS = 6
 NUM_FINGERS = 5
-OPEN_POS = [10, 10, 10, 10, 10, -10]
-MOVE_RATE = 20  # degrees per second
+OPEN_POS = [30, 30, 30, 30, 30, -50]
+MOVE_RATE = 50  # degrees per second
 
 # Position limits per joint: (min, max)
 POS_LIMITS = [

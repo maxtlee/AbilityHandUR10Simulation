@@ -12,10 +12,12 @@ import time
 import numpy as np
 
 from ah_rl.envs.grasp_env import AHGraspEnv
+from ah_rl.envs.grasp_env_fixed import AHGraspEnvFixed
 
 
 def evaluate(args):
-    env = AHGraspEnv(render_mode="human", max_episode_steps=args.max_steps)
+    EnvCls = AHGraspEnvFixed if args.env == "hand_only" else AHGraspEnv
+    env = EnvCls(render_mode="human", max_episode_steps=args.max_steps)
 
     model = None
     if args.model_path and not args.random:
@@ -50,6 +52,7 @@ def evaluate(args):
         total_reward = 0.0
         max_lift = 0.0
         steps = 0
+        ep_success_fired = False
 
         while True:
             if model is not None:
@@ -66,13 +69,18 @@ def evaluate(args):
             if lift is not None:
                 max_lift = max(max_lift, lift)
 
+            # Sparse success: the env's success_fired event marks a
+            # sustained lift (configurable hold_steps). Fall back to a
+            # lift threshold for legacy envs that don't emit it.
+            ep_success_fired = ep_success_fired or bool(info.get("success_fired", False))
+
             if terminated or truncated:
                 break
 
             if args.slow:
                 time.sleep(0.02)
 
-        success = max_lift > 0.03  # lifted at least 3cm
+        success = ep_success_fired or (max_lift > 0.03)
         successes += int(success)
         episode_rewards.append(total_reward)
         episode_lengths.append(steps)
@@ -98,6 +106,12 @@ def main():
         nargs="?",
         default=None,
         help="Path to saved model (omit for random policy)",
+    )
+    parser.add_argument(
+        "--env",
+        choices=["hand_only", "arm_hand"],
+        default="hand_only",
+        help="Env: hand_only (default) or arm_hand (legacy 12-DOF)",
     )
     parser.add_argument(
         "--random",

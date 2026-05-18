@@ -1,0 +1,71 @@
+<mujoco model="ur10e grasp (hand-only policy)">
+  <include file="ur10e.xml"/>
+
+  <statistic center="-0.15 0.6 0.4" extent="0.8"/>
+
+  <option timestep="0.002"/>
+
+  <visual>
+    <headlight diffuse="0.6 0.6 0.6" ambient="0.1 0.1 0.1" specular="0 0 0"/>
+    <rgba haze="0.15 0.25 0.35 1"/>
+    <global azimuth="120" elevation="-20"/>
+  </visual>
+
+  <asset>
+    <texture type="skybox" builtin="gradient" rgb1="0.3 0.5 0.7" rgb2="0 0 0" width="512" height="3072"/>
+    <texture type="2d" name="groundplane" builtin="checker" mark="edge" rgb1="0.2 0.3 0.4" rgb2="0.1 0.2 0.3"
+      markrgb="0.8 0.8 0.8" width="300" height="300"/>
+    <texture type="2d" name="table_tex" builtin="flat" rgb1="0.6 0.45 0.3" width="128" height="128"/>
+    <material name="groundplane" texture="groundplane" texuniform="true" texrepeat="5 5" reflectance="0.2"/>
+    <material name="table_mat" texture="table_tex" rgba="0.6 0.45 0.3 1" specular="0.1" shininess="0.1"/>
+    <material name="object_mat" rgba="0.8 0.2 0.2 1" specular="0.5" shininess="0.3"/>
+  </asset>
+
+  <worldbody>
+    <light pos="0 0 1.5" dir="0 0 -1" directional="true"/>
+    <geom name="floor" size="0 0 0.05" type="plane" material="groundplane"/>
+
+    <!-- Table: top at z=0.42, centered under grasp zone -->
+    <body name="table" pos="-0.155 0.585 0">
+      <geom name="table_top" type="box" size="0.20 0.20 0.02" pos="0 0 0.4"
+            material="table_mat" mass="20" friction="1.0 0.005 0.0001"/>
+      <geom name="table_leg1" type="cylinder" size="0.02 0.19" pos=" 0.17  0.17 0.19" rgba="0.4 0.3 0.2 1"/>
+      <geom name="table_leg2" type="cylinder" size="0.02 0.19" pos="-0.17  0.17 0.19" rgba="0.4 0.3 0.2 1"/>
+      <geom name="table_leg3" type="cylinder" size="0.02 0.19" pos=" 0.17 -0.17 0.19" rgba="0.4 0.3 0.2 1"/>
+      <geom name="table_leg4" type="cylinder" size="0.02 0.19" pos="-0.17 -0.17 0.19" rgba="0.4 0.3 0.2 1"/>
+    </body>
+
+    <!-- Graspable object: 5cm cube, sits on table top centered in grasp zone -->
+    <body name="target_object" pos="-0.155 0.585 0.445">
+      <freejoint name="object_joint"/>
+      <geom name="object_geom" type="box" size="0.025 0.025 0.025"
+            material="object_mat" mass="0.1" friction="1.0 0.005 0.0001"
+            solref="0.01 1" solimp="0.95 0.99 0.002"/>
+      <site name="object_site" size="0.001"/>
+    </body>
+
+    <camera name="grasp_cam" pos="0.2 0.2 0.8" xyaxes="0.707 -0.707 0 0.354 0.354 0.866"/>
+  </worldbody>
+
+  <sensor>
+    <!-- xbody returns the body frame origin, not the inertial frame -->
+    <framepos  name="palm_pos"   objtype="xbody" objname="ability_hand"/>
+    <framexaxis name="palm_xaxis" objtype="xbody" objname="ability_hand"/>
+    <frameyaxis name="palm_yaxis" objtype="xbody" objname="ability_hand"/>
+    <framezaxis name="palm_zaxis" objtype="xbody" objname="ability_hand"/>
+  </sensor>
+
+  <keyframe>
+    <!-- Arm: qarm = (-1.6, -1.6, 1.8, -1.6, -1.5708, 0) puts palm at ~(-0.155, 0.645, 0.547)
+         with palm normal facing +y and fingers extending -z.
+         Hand: fully open (all hand joints at 0).
+         Object: on table top at world (-0.155, 0.58, 0.445).
+         qpos order: 6 arm + 10 hand + 7 object freejoint. -->
+    <key name="grasp_ready"
+         qpos="-1.6 -1.6 1.7 -1.5 -1.5708 0
+                 0 0.7235 0 0.7235 0 0.7235 0 0.7235 0 0
+                 -0.155 0.585 0.445 1 0 0 0"
+         ctrl="-1.6 -1.6 1.7 -1.5 -1.5708 0
+                 0 0.7235 0 0.7235 0 0.7235 0 0.7235 0 0"/>
+  </keyframe>
+</mujoco>
