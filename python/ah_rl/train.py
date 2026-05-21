@@ -21,8 +21,8 @@ import argparse
 import os
 from datetime import datetime
 
-from ah_rl.envs.grasp_env import AHGraspEnv
-from ah_rl.envs.grasp_env_fixed import AHGraspEnvFixed
+from envs.grasp_env import AHGraspEnv
+from envs.grasp_env_fixed import AHGraspEnvFixed
 
 
 def parse_steps(s: str) -> int:

@@ -1,3 +1,3 @@
-from ah_rl.envs.grasp_env import AHGraspEnv
+from envs.grasp_env import AHGraspEnv
 
 __all__ = ["AHGraspEnv"]
