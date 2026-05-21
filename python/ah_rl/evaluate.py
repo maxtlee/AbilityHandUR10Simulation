@@ -27,10 +27,11 @@ def evaluate(args):
             print("stable-baselines3 is required: pip install 'stable-baselines3[extra]'")
             raise SystemExit(1)
 
-        # Try loading as SAC first, then PPO
+        # Try loading as SAC first, then PPO. Passing device= lets us load a
+        # CUDA-trained checkpoint on a CPU-only box (and vice versa).
         for algo_cls in [SAC, PPO]:
             try:
-                model = algo_cls.load(args.model_path)
+                model = algo_cls.load(args.model_path, device=args.device)
                 print(f"Loaded {algo_cls.__name__} model from {args.model_path}")
                 break
             except Exception:
@@ -137,6 +138,13 @@ def main():
         "--slow",
         action="store_true",
         help="Add delay between steps for slower visualization",
+    )
+    parser.add_argument(
+        "--device",
+        choices=["auto", "cpu", "cuda"],
+        default="auto",
+        help="Torch device for inference (default: auto). Use cpu to load a "
+             "GPU-trained checkpoint on a machine without CUDA.",
     )
     args = parser.parse_args()
 

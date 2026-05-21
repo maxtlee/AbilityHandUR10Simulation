@@ -9,6 +9,12 @@ Usage:
     python -m ah_rl.train --algo ppo --steps 1M
     python -m ah_rl.train --n-envs 8 --steps 2M
     python -m ah_rl.train --render                 # watch one env during training
+    python -m ah_rl.train --device cuda            # force GPU (errors if unavailable)
+
+For GPU support, install a CUDA build of PyTorch *before* SB3 pulls in the
+CPU wheel, e.g.:
+    pip install torch --index-url https://download.pytorch.org/whl/cu121
+(use cu118 for older NVIDIA drivers).
 """
 
 import argparse
@@ -42,6 +48,7 @@ def make_env(rank: int, seed: int, render: bool = False, env_name: str = "hand_o
 
 def train(args):
     try:
+        import torch
         from stable_baselines3 import SAC, PPO
         from stable_baselines3.common.vec_env import (
             SubprocVecEnv,
@@ -54,6 +61,17 @@ def train(args):
         )
     except ImportError:
         print("stable-baselines3 is required: pip install 'stable-baselines3[extra]'")
+        raise SystemExit(1)
+
+    cuda_available = torch.cuda.is_available()
+    if args.device == "cuda" and not cuda_available:
+        print(
+            "ERROR: --device cuda requested but torch.cuda.is_available() is False.\n"
+            "  The installed PyTorch is CPU-only or the CUDA driver is missing.\n"
+            "  Install a CUDA build, e.g.:\n"
+            "    pip install torch --index-url https://download.pytorch.org/whl/cu121\n"
+            "  (use cu118 for older drivers)."
+        )
         raise SystemExit(1)
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -106,6 +124,7 @@ def train(args):
             verbose=1,
             tensorboard_log=os.path.join(log_dir, "tb"),
             seed=args.seed,
+            device=args.device,
         )
     else:  # ppo
         model = algo_cls(
@@ -121,12 +140,20 @@ def train(args):
             verbose=1,
             tensorboard_log=os.path.join(log_dir, "tb"),
             seed=args.seed,
+            device=args.device,
         )
 
+    gpu_name = torch.cuda.get_device_name(0) if cuda_available else "n/a"
     print(f"Training {args.algo.upper()} for {total_steps:,} steps")
     print(f"  envs: {args.n_envs}, log dir: {log_dir}")
     print(f"  obs dim: {train_envs.observation_space.shape}")
     print(f"  act dim: {train_envs.action_space.shape}")
+    print(f"  torch: {torch.__version__}, cuda available: {cuda_available}, gpu: {gpu_name}")
+    print(f"  effective device: {model.device}")
+    if str(model.device) == "cpu" and args.algo == "ppo":
+        pass  # PPO on CPU is often fine for tiny MLPs; no warning needed.
+    if str(model.device).startswith("cuda") and args.algo == "ppo":
+        print("  note: PPO with this small MLP may not be faster on GPU than CPU.")
 
     model.learn(
         total_timesteps=total_steps,
@@ -174,6 +201,13 @@ def main():
         "--render",
         action="store_true",
         help="Render one training env (slows training)",
+    )
+    parser.add_argument(
+        "--device",
+        choices=["auto", "cpu", "cuda"],
+        default="auto",
+        help="Torch device for the policy/value nets (default: auto). "
+             "Physics always runs on CPU; only the network step moves to GPU.",
     )
     args = parser.parse_args()
     train(args)
