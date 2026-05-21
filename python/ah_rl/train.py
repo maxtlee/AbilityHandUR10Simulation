@@ -15,8 +15,8 @@ import argparse
 import os
 from datetime import datetime
 
-from ah_rl.envs.grasp_env import AHGraspEnv
-from ah_rl.envs.grasp_env_fixed import AHGraspEnvFixed
+from envs.grasp_env import AHGraspEnv
+from envs.grasp_env_fixed import AHGraspEnvFixed
 
 
 def parse_steps(s: str) -> int:
@@ -29,7 +29,7 @@ def parse_steps(s: str) -> int:
     return int(s)
 
 
-def make_env(rank: int, seed: int, render: bool = False, env_name: str = "hand_only"):
+def make_env(rank: int, seed: int, render: bool = True, env_name: str = "hand_only"):
     """Factory for creating vectorized envs."""
     def _init():
         render_mode = "human" if (render and rank == 0) else None
