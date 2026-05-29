@@ -89,3 +89,5 @@ pulse, then go out, indicating that the power is off.
 You can charge the Lipo battery by plugging the provided USB-C charger to the 
 ABILITY HAND POWER SWITCH.  You can leave everything connected, but you cannot 
 operate the Ability Hand while it is charging.
+
+test
